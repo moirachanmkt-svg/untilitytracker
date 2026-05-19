@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Utility Tracker — Log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#F4F2EE;--surface:#FFFFFF;--surface2:#F9F8F6;
+    --border:#E2DDD6;--border2:#CCC8C0;
+    --text:#1A1916;--text2:#6B6860;--text3:#A09D98;
+    --accent:#1A3A5C;--accent2:#2A5A8C;
+    --danger:#C0392B;--danger-bg:#FDF0EE;
+    --warn:#B8800A;--warn-bg:#FDFAEF;
+    --radius:10px;--radius-lg:16px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+  .nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 16px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100}
+  .nav-brand{font-size:15px;font-weight:600;letter-spacing:-.3px}
+  .nav-brand span{color:var(--accent)}
+  .nav-date-wrap{display:flex;align-items:center;gap:6px}
+  .nav-arrow{background:none;border:1px solid var(--border2);border-radius:8px;padding:6px 11px;font-size:16px;color:var(--text2);cursor:pointer;line-height:1;transition:background .15s}
+  .nav-arrow:hover{background:var(--bg)}
+  .nav-date-input{font:14px 'DM Sans',sans-serif;border:1px solid var(--border2);border-radius:8px;padding:6px 10px;background:var(--surface);color:var(--text);cursor:pointer;max-width:140px}
+
+  .tab-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 16px;display:flex}
+  .tab-btn{padding:12px 18px;font:500 13px 'DM Sans',sans-serif;border:none;background:none;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;display:flex;align-items:center;gap:6px}
+  .tab-btn.active{color:var(--text);border-bottom-color:var(--accent)}
+  .dot{width:7px;height:7px;border-radius:50%}
+  .dot-hydro{background:#1A3A5C}.dot-water{background:#0F6E56}.dot-gas{background:#7A4200}
+
+  .bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);display:flex;z-index:100}
+  .bottom-btn{flex:1;padding:10px 0;font:500 12px 'DM Sans',sans-serif;border:none;background:none;cursor:pointer;color:var(--text2);display:flex;flex-direction:column;align-items:center;gap:3px;transition:color .15s}
+  .bottom-btn.active{color:var(--accent)}
+  .bottom-btn svg{width:20px;height:20px}
+
+  .content{padding:12px 14px 90px;max-width:600px;margin:0 auto}
+  .date-label{font:400 12px 'DM Sans',sans-serif;color:var(--text3);text-align:center;padding:6px 0 2px}
+
+  .section-label{font:500 11px 'DM Sans',sans-serif;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;padding:12px 0 6px}
+
+  .meter-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 14px 12px;margin-bottom:8px;transition:border-color .15s}
+  .meter-card:focus-within{border-color:var(--accent2)}
+  .meter-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+  .meter-name{font:500 14px 'DM Sans',sans-serif;color:var(--text)}
+  .meter-desc{font:400 12px 'DM Sans',sans-serif;color:var(--text2);margin-top:2px}
+  .meter-id{font:500 11px 'DM Mono',monospace;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:3px 8px;color:var(--text2)}
+  .meter-input-row{display:flex;align-items:center;gap:8px}
+  .meter-input{
+    flex:1;font:500 16px 'DM Mono',monospace;
+    border:1.5px solid var(--border);border-radius:8px;
+    padding:10px 12px;color:var(--text);background:var(--surface2);
+    transition:border-color .15s,background .15s;outline:none;text-align:right;
+    -webkit-appearance:none;appearance:none
+  }
+  .meter-input:focus{border-color:var(--accent2);background:var(--surface)}
+  .meter-input.has-value{background:#EEF4FF;border-color:#B5D4F4}
+  .meter-unit{font:400 13px 'DM Sans',sans-serif;color:var(--text2);min-width:44px}
+  .clear-btn{background:none;border:1px solid var(--border2);border-radius:7px;padding:6px 8px;cursor:pointer;color:var(--text3);font-size:14px;line-height:1;transition:all .15s;display:none}
+  .clear-btn.show{display:block}
+  .clear-btn:hover{color:var(--danger);border-color:var(--danger)}
+  .meter-warn{font:400 12px 'DM Sans',sans-serif;color:var(--warn);background:var(--warn-bg);border-radius:6px;padding:4px 8px;margin-top:6px;display:none}
+  .meter-warn.show{display:block}
+
+  .event-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;margin-top:8px}
+  .event-title{font:500 14px 'DM Sans',sans-serif;color:var(--text);margin-bottom:12px}
+  .event-row{display:flex;gap:8px;margin-bottom:12px}
+  .event-btn{flex:1;padding:9px;font:500 13px 'DM Sans',sans-serif;border:1.5px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text2);cursor:pointer;transition:all .15s}
+  .event-btn.active-event{border-color:#1A3A5C;background:#EEF2F8;color:#1A3A5C}
+  .event-btn.active-eng{border-color:#0F6E56;background:#EEF7F4;color:#0F6E56}
+  .event-note{width:100%;border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font:400 13px 'DM Sans',sans-serif;color:var(--text);background:var(--surface2);resize:vertical;min-height:70px;outline:none;transition:border-color .15s}
+  .event-note:focus{border-color:var(--accent2);background:var(--surface)}
+  .event-save{margin-top:10px;width:100%;padding:11px;font:500 13px 'DM Sans',sans-serif;background:var(--accent);color:#fff;border:none;border-radius:8px;cursor:pointer;transition:background .15s}
+  .event-save:hover{background:var(--accent2)}
+
+  .loading{text-align:center;padding:40px 20px;color:var(--text2);font-size:14px}
+  .spinner{width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* Modal */
+  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;z-index:999;opacity:0;pointer-events:none;transition:opacity .2s}
+  .modal-backdrop.open{opacity:1;pointer-events:all}
+  .modal{background:var(--surface);border-radius:20px 20px 0 0;padding:24px 20px 40px;width:100%;max-width:600px;transform:translateY(20px);transition:transform .2s}
+  .modal-backdrop.open .modal{transform:translateY(0)}
+  .modal-title{font:600 16px 'DM Sans',sans-serif;color:var(--text);margin-bottom:6px}
+  .modal-value{font:600 24px 'DM Mono',monospace;color:var(--text);margin-bottom:4px}
+  .modal-detail{font:400 13px 'DM Sans',sans-serif;color:var(--text2);margin-bottom:20px;line-height:1.6;white-space:pre-line}
+  .modal-btns{display:flex;gap:10px}
+  .modal-btn{flex:1;padding:13px;border-radius:10px;font:500 14px 'DM Sans',sans-serif;cursor:pointer;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);transition:all .15s}
+  .modal-btn.confirm{background:var(--accent);border-color:var(--accent);color:#fff}
+  .modal-btn.confirm:hover{background:var(--accent2)}
+  .modal-btn.danger{background:var(--danger);border-color:var(--danger);color:#fff}
+
+  .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--text);color:#fff;border-radius:10px;padding:10px 18px;font:500 13px 'DM Sans',sans-serif;opacity:0;pointer-events:none;transition:all .25s;z-index:1000;white-space:nowrap}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .toast.error{background:var(--danger)}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-brand">Utility <span>Tracker</span></div>
+  <div class="nav-date-wrap">
+    <button class="nav-arrow" onclick="changeDate(-1)">&#8592;</button>
+    <input type="date" id="nav-date-input" class="nav-date-input" onchange="onDateChange(this.value)">
+    <button class="nav-arrow" onclick="changeDate(1)">&#8594;</button>
+  </div>
+</nav>
+
+<div class="tab-bar" id="tab-bar"></div>
+
+<div class="content" id="content">
+  <div class="loading"><div class="spinner"></div>Loading config…</div>
+</div>
+
+<nav class="bottom-nav">
+  <button class="bottom-btn active" onclick="goPage('log')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5"/><path d="M17.5 3.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 8.5-8.5z"/></svg>
+    Log
+  </button>
+  <button class="bottom-btn" onclick="goPage('daily')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+    Daily
+  </button>
+  <button class="bottom-btn" onclick="goPage('report')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    Report
+  </button>
+</nav>
+
+<!-- Confirm / Clear Modal -->
+<div class="modal-backdrop" id="modal">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">Confirm reading</div>
+    <div class="modal-value" id="modal-value"></div>
+    <div class="modal-detail" id="modal-detail"></div>
+    <div class="modal-btns">
+      <button class="modal-btn" onclick="closeModal()">Cancel</button>
+      <button class="modal-btn confirm" id="modal-confirm-btn" onclick="modalConfirm()">Confirm & save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbzBymh9RQmM8ZkQMo6B0rajLr2sqj7If-Lt4pD2hoewzMht4iRMKDjDupSam_L-LLIqcw/exec";
+
+let config = null;
+let activeUtility = null;
+let selectedDate = todayStr();
+let pendingAction = null; // { type: 'save'|'clear', meterId, value, meter }
+let existingReadings = {};
+let existingEvent = null;
+let activeEventType = null;
+
+// ── INIT ────────────────────────────────────────────────────
+window.onload = async () => {
+  // Check for date param in URL
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("date")) selectedDate = params.get("date");
+  document.getElementById("nav-date-input").value = selectedDate;
+  await loadConfig();
+};
+
+async function loadConfig() {
+  try {
+    const res = await apiFetch(`${API_URL}?action=getConfig`);
+    config = res;
+    const utilities = [...new Set(config.meters.map(m => m.utility))];
+    activeUtility = utilities[0];
+    renderTabs();
+    await loadPage();
+  } catch(e) {
+    document.getElementById("content").innerHTML = `<div class="loading">⚠ Could not load config.<br>Check API URL in the HTML file.</div>`;
+  }
+}
+
+// ── TABS ────────────────────────────────────────────────────
+function renderTabs() {
+  const utilities = [...new Set(config.meters.map(m => m.utility))];
+  document.getElementById("tab-bar").innerHTML = utilities.map(u => `
+    <button class="tab-btn ${u===activeUtility?'active':''}" onclick="switchTab('${u}')">
+      <span class="dot dot-${u.toLowerCase()}"></span>${u}
+    </button>`).join("");
+}
+
+function switchTab(u) {
+  activeUtility = u;
+  renderTabs();
+  renderMeters();
+}
+
+// ── PAGE LOAD ───────────────────────────────────────────────
+async function loadPage() {
+  document.getElementById("content").innerHTML = `<div class="loading"><div class="spinner"></div>Loading…</div>`;
+  existingReadings = {};
+  existingEvent = null;
+  activeEventType = null;
+
+  try {
+    // Single batch call for all readings on this date
+    const [readingsRes, dailyRes] = await Promise.all([
+      apiFetch(`${API_URL}?action=getAllReadings&date=${selectedDate}`),
+      apiFetch(`${API_URL}?action=getDaily&date=${selectedDate}`)
+    ]);
+    existingReadings = readingsRes.readings || {};
+    existingEvent = dailyRes.event || null;
+    if (existingEvent) activeEventType = existingEvent.type;
+  } catch(e) {}
+
+  renderMeters();
+  checkPreviousDayMissing();
+}
+
+// ── RENDER ──────────────────────────────────────────────────
+function renderMeters() {
+  const meters = config.meters.filter(m => m.utility === activeUtility);
+  const buildings = [...new Set(meters.map(m => m.building))];
+  let html = `<div class="date-label">${formatDisplay(selectedDate)}</div>`;
+
+  buildings.forEach(building => {
+    html += `<div class="section-label">${building}</div>`;
+    meters.filter(m => m.building === building).forEach(m => {
+      const existing = existingReadings[m.meterId];
+      const hasVal = existing !== undefined && existing !== null;
+      html += `
+      <div class="meter-card" id="card-${CSS.escape(m.meterId)}">
+        <div class="meter-top">
+          <div>
+            <div class="meter-name">${m.meterName}</div>
+            <div class="meter-desc">${m.unitDesc || m.unit}</div>
+          </div>
+          <span class="meter-id">${m.meterId}</span>
+        </div>
+        <div class="meter-input-row">
+          <input class="meter-input ${hasVal?'has-value':''}"
+            type="number" inputmode="decimal" step="0.001" min="0"
+            id="inp-${m.meterId}"
+            value="${hasVal ? existing : ''}"
+            placeholder="000000.000"
+            data-meterid="${m.meterId}"
+            data-original="${hasVal ? existing : ''}"
+            onkeydown="onKeyDown(event,this)"
+            onblur="onInputBlur(this)"
+          >
+          <span class="meter-unit">${m.unit}</span>
+          <button class="clear-btn ${hasVal?'show':''}" id="clr-${m.meterId}"
+            onclick="initClear('${m.meterId}')" title="Clear reading">✕</button>
+        </div>
+        <div class="meter-warn" id="warn-${m.meterId}">⚠ Previous day reading missing</div>
+      </div>`;
+    });
+  });
+
+  // Event card
+  const evType = existingEvent ? existingEvent.type : "";
+  const evNote = existingEvent ? existingEvent.note : "";
+  html += `
+  <div class="event-card">
+    <div class="event-title">Log details</div>
+    <div class="event-row">
+      <button class="event-btn ${evType==='Event'?'active-event':''}" id="btn-event" onclick="toggleEvent('Event')">Event</button>
+      <button class="event-btn ${evType==='Engineering'?'active-eng':''}" id="btn-eng" onclick="toggleEvent('Engineering')">Engineering</button>
+    </div>
+    <textarea class="event-note" id="event-note" placeholder="Optional note…">${evNote}</textarea>
+    <button class="event-save" onclick="saveEvent()">Save log details</button>
+  </div>`;
+
+  document.getElementById("content").innerHTML = html;
+}
+
+// ── PREVIOUS DAY CHECK ──────────────────────────────────────
+async function checkPreviousDayMissing() {
+  const prevDate = offsetDate(selectedDate, -1);
+  try {
+    const res = await apiFetch(`${API_URL}?action=getAllReadings&date=${prevDate}`);
+    const prevReadings = res.readings || {};
+    config.meters.filter(m => m.utility === activeUtility).forEach(m => {
+      if (!prevReadings[m.meterId]) {
+        document.getElementById(`warn-${m.meterId}`)?.classList.add("show");
+      }
+    });
+  } catch(e) {}
+}
+
+// ── INPUT HANDLING ──────────────────────────────────────────
+function onKeyDown(e, input) {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    input.blur(); // dismiss keyboard
+    triggerSave(input);
+  }
+}
+
+function onInputBlur(input) {
+  // Only trigger if value actually changed from original
+  const val = input.value.trim();
+  const original = input.dataset.original;
+  if (val === "" || val === original) return;
+  // Small delay so blur completes before modal opens
+  setTimeout(() => triggerSave(input), 100);
+}
+
+function triggerSave(input) {
+  const val = parseFloat(input.value);
+  if (isNaN(val) || input.value.trim() === "") return;
+  const meterId = input.dataset.meterid;
+  const original = input.dataset.original;
+  const isOverwrite = original !== "" && original !== undefined;
+  const meter = config.meters.find(m => m.meterId === meterId);
+  pendingAction = { type: "save", meterId, value: val, meter, isOverwrite, originalVal: original };
+  openModal({
+    title: isOverwrite ? "Update reading" : "Confirm reading",
+    value: `${formatNum(val)} ${meter.unit}`,
+    detail: `${meter.meterName} (${meter.meterId})\n${formatDisplay(selectedDate)}${isOverwrite ? `\n\nReplaces existing: ${formatNum(parseFloat(original))} ${meter.unit}` : ""}`,
+    confirmClass: "confirm",
+    confirmLabel: "Confirm & save"
+  });
+}
+
+// ── CLEAR ───────────────────────────────────────────────────
+function initClear(meterId) {
+  const meter = config.meters.find(m => m.meterId === meterId);
+  pendingAction = { type: "clear", meterId, meter };
+  openModal({
+    title: "Clear reading",
+    value: "",
+    detail: `Remove the reading for ${meter.meterName} (${meter.meterId}) on ${formatDisplay(selectedDate)}?\n\nThis will also remove the computed daily value.`,
+    confirmClass: "danger",
+    confirmLabel: "Clear"
+  });
+}
+
+// ── MODAL ───────────────────────────────────────────────────
+function openModal({ title, value, detail, confirmClass, confirmLabel }) {
+  document.getElementById("modal-title").textContent = title;
+  document.getElementById("modal-value").textContent = value;
+  document.getElementById("modal-detail").textContent = detail;
+  const btn = document.getElementById("modal-confirm-btn");
+  btn.className = `modal-btn ${confirmClass}`;
+  btn.textContent = confirmLabel;
+  document.getElementById("modal").classList.add("open");
+}
+
+function closeModal() {
+  document.getElementById("modal").classList.remove("open");
+  // Restore original value if cancelled save
+  if (pendingAction?.type === "save") {
+    const inp = document.getElementById(`inp-${pendingAction.meterId}`);
+    if (inp) inp.value = inp.dataset.original;
+  }
+  pendingAction = null;
+}
+
+async function modalConfirm() {
+  document.getElementById("modal").classList.remove("open");
+  if (!pendingAction) return;
+
+  if (pendingAction.type === "save") {
+    await doSave();
+  } else if (pendingAction.type === "clear") {
+    await doClear();
+  }
+  pendingAction = null;
+}
+
+async function doSave() {
+  const { meterId, value } = pendingAction;
+  try {
+    const res = await apiFetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify({ action: "saveReading", date: selectedDate, meterId, value })
+    });
+    if (res.success) {
+      existingReadings[meterId] = value;
+      const inp = document.getElementById(`inp-${meterId}`);
+      if (inp) { inp.dataset.original = value; inp.classList.add("has-value"); }
+      document.getElementById(`clr-${meterId}`)?.classList.add("show");
+      showToast("Reading saved");
+    } else {
+      showToast("Save failed: " + (res.error || ""), true);
+    }
+  } catch(e) { showToast("Network error", true); }
+}
+
+async function doClear() {
+  const { meterId } = pendingAction;
+  try {
+    const res = await apiFetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify({ action: "clearReading", date: selectedDate, meterId })
+    });
+    if (res.success) {
+      delete existingReadings[meterId];
+      const inp = document.getElementById(`inp-${meterId}`);
+      if (inp) { inp.value = ""; inp.dataset.original = ""; inp.classList.remove("has-value"); }
+      document.getElementById(`clr-${meterId}`)?.classList.remove("show");
+      showToast("Reading cleared");
+    } else {
+      showToast("Clear failed: " + (res.error || ""), true);
+    }
+  } catch(e) { showToast("Network error", true); }
+}
+
+// ── EVENT ───────────────────────────────────────────────────
+function toggleEvent(type) {
+  activeEventType = activeEventType === type ? null : type;
+  document.getElementById("btn-event").className = `event-btn${activeEventType==="Event"?" active-event":""}`;
+  document.getElementById("btn-eng").className = `event-btn${activeEventType==="Engineering"?" active-eng":""}`;
+}
+
+async function saveEvent() {
+  const note = document.getElementById("event-note").value.trim();
+  if (!activeEventType && !note) { showToast("Select Event or Engineering first"); return; }
+  try {
+    const res = await apiFetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify({ action: "saveEvent", date: selectedDate, type: activeEventType || "", note })
+    });
+    if (res.success) showToast("Log details saved");
+    else showToast("Failed", true);
+  } catch(e) { showToast("Network error", true); }
+}
+
+// ── DATE NAV ────────────────────────────────────────────────
+function changeDate(delta) {
+  selectedDate = offsetDate(selectedDate, delta);
+  document.getElementById("nav-date-input").value = selectedDate;
+  loadPage();
+}
+function onDateChange(val) { selectedDate = val; loadPage(); }
+
+// ── PAGE NAV ────────────────────────────────────────────────
+function goPage(page) {
+  if (page === "daily") location.href = `daily.html?date=${selectedDate}`;
+  if (page === "report") location.href = "report.html";
+}
+
+// ── HELPERS ─────────────────────────────────────────────────
+async function apiFetch(url, opts = {}) {
+  const res = await fetch(url, opts);
+  return res.json();
+}
+
+function todayStr() { return new Date().toISOString().slice(0,10); }
+function offsetDate(d, n) {
+  const dt = new Date(d + "T12:00:00"); dt.setDate(dt.getDate() + n);
+  return dt.toISOString().slice(0,10);
+}
+function formatNum(v) {
+  if (v === null || v === undefined || isNaN(v)) return "—";
+  return v.toLocaleString("en-CA", { minimumFractionDigits:3, maximumFractionDigits:3 });
+}
+function formatDisplay(dateStr) {
+  const d = new Date(dateStr + "T12:00:00");
+  const M = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const D = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  return `${M[d.getMonth()]} ${d.getDate()} ${d.getFullYear()} (${D[d.getDay()]})`;
+}
+function showToast(msg, isError=false) {
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.className = "toast show" + (isError?" error":"");
+  setTimeout(() => { t.className = "toast"; }, 3000);
+}
+</script>
+</body>
+</html>

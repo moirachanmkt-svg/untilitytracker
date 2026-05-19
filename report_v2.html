@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Utility Tracker — Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#F4F2EE;--surface:#FFFFFF;--surface2:#F9F8F6;
+    --border:#E2DDD6;--border2:#CCC8C0;
+    --text:#1A1916;--text2:#6B6860;--text3:#A09D98;
+    --accent:#1A3A5C;--danger:#C0392B;
+    --radius:10px;--radius-lg:16px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+  .nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 16px;display:flex;align-items:center;height:56px;position:sticky;top:0;z-index:100}
+  .nav-brand{font-size:15px;font-weight:600;letter-spacing:-.3px}
+  .nav-brand span{color:var(--accent)}
+
+  .bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);display:flex;z-index:100}
+  .bottom-btn{flex:1;padding:10px 0;font:500 12px 'DM Sans',sans-serif;border:none;background:none;cursor:pointer;color:var(--text2);display:flex;flex-direction:column;align-items:center;gap:3px;transition:color .15s}
+  .bottom-btn.active{color:var(--accent)}
+  .bottom-btn svg{width:20px;height:20px}
+
+  .content{padding:12px 14px 90px;max-width:720px;margin:0 auto}
+
+  .filter-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;margin-bottom:12px}
+  .filter-row{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px}
+  .filter-group{display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px}
+  .filter-label{font:500 11px 'DM Sans',sans-serif;color:var(--text3);text-transform:uppercase;letter-spacing:.05em}
+  .filter-input{border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font:14px 'DM Sans',sans-serif;color:var(--text);background:var(--surface2);outline:none;transition:border-color .15s}
+  .filter-input:focus{border-color:var(--accent)}
+  .load-btn{padding:9px 20px;background:var(--accent);color:#fff;border:none;border-radius:8px;font:500 13px 'DM Sans',sans-serif;cursor:pointer;transition:background .15s;white-space:nowrap;align-self:flex-end}
+  .load-btn:hover{background:#2A5A8C}
+
+  .meter-section-title{font:500 11px 'DM Sans',sans-serif;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px}
+  .utility-group{margin-bottom:12px}
+  .u-group-label{font:500 12px 'DM Sans',sans-serif;color:var(--text2);display:flex;align-items:center;gap:6px;margin-bottom:6px}
+  .u-dot{width:7px;height:7px;border-radius:50%}
+  .check-row{display:flex;flex-wrap:wrap;gap:6px}
+  .meter-pill{
+    display:flex;align-items:center;gap:5px;
+    background:var(--surface2);border:1px solid var(--border);
+    border-radius:20px;padding:5px 12px;cursor:pointer;
+    font:400 12px 'DM Sans',sans-serif;color:var(--text2);
+    transition:all .15s;user-select:none
+  }
+  .meter-pill.checked{color:#fff;border-color:transparent}
+  .meter-pill .pill-dot{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.7}
+
+  .chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;margin-bottom:12px}
+  .chart-title{font:500 13px 'DM Sans',sans-serif;margin-bottom:14px}
+  .chart-wrap{position:relative;height:260px}
+
+  .loading{text-align:center;padding:40px 20px;color:var(--text2);font-size:14px}
+  .spinner{width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .empty{text-align:center;padding:30px;color:var(--text3);font-size:14px}
+
+  /* High-contrast chart colors that work in both light and dark mode */
+  /* Defined as CSS vars so JS can read them */
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-brand">Utility <span>Tracker</span></div>
+</nav>
+
+<div class="content">
+  <div class="filter-card">
+    <div class="filter-row">
+      <div class="filter-group">
+        <label class="filter-label">From</label>
+        <input type="date" id="start-date" class="filter-input">
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">To</label>
+        <input type="date" id="end-date" class="filter-input">
+      </div>
+      <button class="load-btn" onclick="fetchReport()">Load</button>
+    </div>
+    <div id="meter-filters" style="display:none">
+      <div class="meter-section-title">Select meters to display</div>
+      <div id="filter-groups"></div>
+    </div>
+  </div>
+  <div id="charts-area"><div class="empty">Select a date range and press Load.</div></div>
+</div>
+
+<nav class="bottom-nav">
+  <button class="bottom-btn" onclick="location.href='log.html'">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5"/><path d="M17.5 3.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 8.5-8.5z"/></svg>
+    Log
+  </button>
+  <button class="bottom-btn" onclick="location.href='daily.html'">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+    Daily
+  </button>
+  <button class="bottom-btn active">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    Report
+  </button>
+</nav>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbzBymh9RQmM8ZkQMo6B0rajLr2sqj7If-Lt4pD2hoewzMht4iRMKDjDupSam_L-LLIqcw/exec";
+
+// High-contrast palette — readable on both light and dark backgrounds
+const CHART_COLORS = [
+  "#2563EB", // strong blue
+  "#16A34A", // strong green
+  "#DC2626", // strong red
+  "#D97706", // amber
+  "#7C3AED", // purple
+  "#0891B2", // cyan
+  "#DB2777", // pink
+  "#65A30D", // lime
+  "#EA580C", // orange
+  "#0D9488", // teal
+];
+const U_COLORS = { Hydro:"#1A3A5C", Water:"#0F6E56", Gas:"#7A4200" };
+
+let configData = null;
+let reportData = null;
+let checkedMeters = new Set(); // starts empty — user selects
+let charts = [];
+let meterColorMap = {};
+
+// Set default date range: last 30 days
+const today = new Date();
+const past = new Date(); past.setDate(today.getDate()-30);
+document.getElementById("end-date").value = today.toISOString().slice(0,10);
+document.getElementById("start-date").value = past.toISOString().slice(0,10);
+
+window.onload = async () => {
+  const res = await fetch(`${API_URL}?action=getConfig`);
+  configData = await res.json();
+  // Assign colors to meters
+  configData.meters.forEach((m, i) => {
+    meterColorMap[m.meterId] = CHART_COLORS[i % CHART_COLORS.length];
+  });
+  renderFilters();
+};
+
+function renderFilters() {
+  const utilities = [...new Set(configData.meters.map(m=>m.utility))];
+  let html = "";
+  utilities.forEach(u => {
+    const meters = configData.meters.filter(m=>m.utility===u);
+    html += `<div class="utility-group">
+      <div class="u-group-label">
+        <span class="u-dot" style="background:${U_COLORS[u]||'#888'}"></span>${u}
+      </div>
+      <div class="check-row">`;
+    meters.forEach(m => {
+      const color = meterColorMap[m.meterId];
+      const isChecked = checkedMeters.has(m.meterId);
+      html += `<div class="meter-pill ${isChecked?'checked':''}"
+        id="pill-${m.meterId}"
+        style="${isChecked?`background:${color};`:''}"
+        onclick="toggleMeter('${m.meterId}','${color}')">
+        <span class="pill-dot"></span>
+        ${m.meterName}
+        <span style="opacity:.6;font-size:11px">${m.meterId}</span>
+      </div>`;
+    });
+    html += `</div></div>`;
+  });
+  document.getElementById("filter-groups").innerHTML = html;
+  document.getElementById("meter-filters").style.display = "block";
+}
+
+function toggleMeter(meterId, color) {
+  if (checkedMeters.has(meterId)) {
+    checkedMeters.delete(meterId);
+    const pill = document.getElementById(`pill-${meterId}`);
+    if (pill) { pill.classList.remove("checked"); pill.style.background=""; }
+  } else {
+    checkedMeters.add(meterId);
+    const pill = document.getElementById(`pill-${meterId}`);
+    if (pill) { pill.classList.add("checked"); pill.style.background=color; }
+  }
+  if (reportData) renderCharts();
+}
+
+async function fetchReport() {
+  const start = document.getElementById("start-date").value;
+  const end = document.getElementById("end-date").value;
+  if (!start || !end) return;
+  document.getElementById("charts-area").innerHTML = `<div class="loading"><div class="spinner"></div>Loading…</div>`;
+  try {
+    const res = await fetch(`${API_URL}?action=getReport&startDate=${start}&endDate=${end}`);
+    reportData = await res.json();
+    renderCharts();
+  } catch(e) {
+    document.getElementById("charts-area").innerHTML = `<div class="empty">⚠ Could not load data.</div>`;
+  }
+}
+
+function renderCharts() {
+  charts.forEach(c => c.destroy());
+  charts = [];
+
+  if (!reportData?.data?.length) {
+    document.getElementById("charts-area").innerHTML = `<div class="empty">No data in this date range.</div>`;
+    return;
+  }
+  if (checkedMeters.size === 0) {
+    document.getElementById("charts-area").innerHTML = `<div class="empty">Select at least one meter above to display.</div>`;
+    return;
+  }
+
+  const allDates = [...new Set(reportData.data.map(r=>r.date))].sort();
+  const eventDates = new Set(reportData.data.filter(r=>r.event).map(r=>r.date));
+  const utilities = [...new Set(configData.meters.map(m=>m.utility))];
+
+  // X-axis label thinning based on date count
+  const maxLabels = 14;
+  const step = Math.ceil(allDates.length / maxLabels);
+
+  let html = "";
+  utilities.forEach(u => {
+    const meters = configData.meters.filter(m=>m.utility===u && checkedMeters.has(m.meterId));
+    if (!meters.length) return;
+    html += `<div class="chart-card">
+      <div class="chart-title" style="color:${U_COLORS[u]||'#333'}">${u} — daily consumption</div>
+      <div class="chart-wrap"><canvas id="chart-${u}"></canvas></div>
+    </div>`;
+  });
+
+  if (!html) {
+    document.getElementById("charts-area").innerHTML = `<div class="empty">No meters selected for visible utilities.</div>`;
+    return;
+  }
+  document.getElementById("charts-area").innerHTML = html;
+
+  utilities.forEach(u => {
+    const canvas = document.getElementById(`chart-${u}`);
+    if (!canvas) return;
+    const meters = configData.meters.filter(m=>m.utility===u && checkedMeters.has(m.meterId));
+
+    const datasets = meters.map(m => {
+      const color = meterColorMap[m.meterId];
+      const points = allDates.map(d => {
+        const r = reportData.data.find(rd=>rd.date===d&&rd.meterId===m.meterId);
+        return (r && r.consumption!==null) ? r.consumption : null;
+      });
+      const ptColors = allDates.map(d => {
+        const r = reportData.data.find(rd=>rd.date===d&&rd.meterId===m.meterId);
+        if (!r||r.consumption===null) return "transparent";
+        return r.outOfRange ? "#DC2626" : color;
+      });
+      const ptRadius = allDates.map(d => {
+        const r = reportData.data.find(rd=>rd.date===d&&rd.meterId===m.meterId);
+        return (r&&r.outOfRange) ? 7 : 3;
+      });
+      const ptBorderColor = allDates.map(d => {
+        const r = reportData.data.find(rd=>rd.date===d&&rd.meterId===m.meterId);
+        return (r&&r.outOfRange) ? "#DC2626" : color;
+      });
+
+      // Truncate long meter names
+      const label = m.meterName.length > 22 ? m.meterName.slice(0,20)+"…" : m.meterName;
+
+      return {
+        label: `${label} (${m.meterId})`,
+        data: points,
+        borderColor: color,
+        backgroundColor: color + "18",
+        pointBackgroundColor: ptColors,
+        pointBorderColor: ptBorderColor,
+        pointRadius: ptRadius,
+        pointHoverRadius: 7,
+        tension: 0.3,
+        spanGaps: false,
+        borderWidth: 2
+      };
+    });
+
+    const chart = new Chart(canvas, {
+      type: "line",
+      data: { labels: allDates, datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode:"index", intersect:false },
+        plugins: {
+          legend: {
+            position: "bottom",
+            labels: {
+              font: { family:"DM Sans", size:12 },
+              boxWidth: 14,
+              padding: 14,
+              // Wrap legend to multiple lines by limiting box width
+              generateLabels(chart) {
+                const original = Chart.defaults.plugins.legend.labels.generateLabels(chart);
+                return original;
+              }
+            }
+          },
+          tooltip: {
+            callbacks: {
+              title: (items) => formatDisplay(items[0].label),
+              label: (ctx) => {
+                if (ctx.parsed.y===null) return ` ${ctx.dataset.label}: missing`;
+                return ` ${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString("en-CA",{minimumFractionDigits:3,maximumFractionDigits:3})}`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: {
+              font: { family:"DM Mono", size:10 },
+              maxRotation: 50,
+              minRotation: 30,
+              callback(val, idx) {
+                // Only show every Nth label
+                if (idx % step !== 0) return "";
+                const d = new Date(this.getLabelForValue(val) + "T12:00:00");
+                const M=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+                return `${M[d.getMonth()]} ${d.getDate()}`;
+              }
+            },
+            grid: { color:"rgba(0,0,0,.06)" }
+          },
+          y: {
+            ticks: { font:{ family:"DM Mono", size:11 } },
+            grid: { color:"rgba(0,0,0,.06)" }
+          }
+        }
+      },
+      plugins: [{
+        id: "eventLines",
+        afterDraw(chart) {
+          const ctx = chart.ctx;
+          allDates.forEach((d, i) => {
+            if (!eventDates.has(d)) return;
+            const x = chart.scales.x.getPixelForValue(i);
+            ctx.save();
+            ctx.strokeStyle = "#F59E0B";
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([4,3]);
+            ctx.globalAlpha = 0.8;
+            ctx.beginPath();
+            ctx.moveTo(x, chart.chartArea.top);
+            ctx.lineTo(x, chart.chartArea.bottom);
+            ctx.stroke();
+            ctx.restore();
+          });
+        }
+      }]
+    });
+    charts.push(chart);
+  });
+}
+
+function formatDisplay(dateStr) {
+  if (!dateStr) return dateStr;
+  const d = new Date(dateStr+"T12:00:00");
+  const M=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const D=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  return `${M[d.getMonth()]} ${d.getDate()} ${d.getFullYear()} (${D[d.getDay()]})`;
+}
+</script>
+</body>
+</html>
